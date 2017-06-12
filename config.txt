@@ -1,0 +1,19 @@
+[runkeeper]
+user_name : 
+password :
+address : https://runkeeper.com/login
+
+[applescript]
+script_path : 
+
+[google_sheet]
+sheet_id : 
+sheet_name : 
+
+[directories]
+monitor_directory : 
+
+[browser]
+browser : chrome
+web_driver_path : 
+
