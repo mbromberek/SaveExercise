@@ -87,9 +87,12 @@ def addExerciseToGoogleSheet(service, spreadsheetId, sheetName, ex):
 # MAIN
 #######################################################
 def main():
+
+	progDir = os.path.dirname(os.path.abspath(__file__))
+	
 	# Get config details
 	config = configparser.ConfigParser()
-	config.read("../configs/newExerciseConfig.txt")
+	config.read(progDir + "/../configs/newExerciseConfig.txt")
 
 	# Enter user name and password for runkeeper
 	runKeeperConfigs = config['runkeeper']

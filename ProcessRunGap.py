@@ -29,8 +29,9 @@ def formatSheetsTime(h, m, s):
 #######################################################
 def main():
 	# Get config details
+	progDir = os.path.dirname(os.path.abspath(__file__))	
 	config = configparser.ConfigParser()
-	config.read("../configs/newExerciseConfig.txt")
+	config.read(progDir + "/../configs/newExerciseConfig.txt")
 	
 	pathToAppleScript = config['applescript']['script_path']
 	appleScriptName = config['applescript']['sheet_name']
