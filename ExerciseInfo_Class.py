@@ -1,10 +1,13 @@
 #! /Users/mikeyb/Applications/python3
-#CycleInfo_Class
+from Weather_Class import WeatherInfo
+
+METERS_TO_FEET = 3.28084
 
 class ExerciseInfo:
 	eDate = ''
 	type = ''
 	startTime = ''
+	endTime = ''
 	distTot = ''
 	distUnit = ''
 	
@@ -22,11 +25,24 @@ class ExerciseInfo:
 	temperature = ''
 	
 	gear = ''
+	category = ''
 	
 	source = ''
 	
 	# Filename the data came from or link to data
 	originLoc = ''
+	
+	elevationGain = ''
+	elevationLoss = ''
+	
+	startLat = ''
+	startLon = ''
+	endLat = ''
+	endLon = ''
+	
+	startWeather = WeatherInfo()
+	endWeather = WeatherInfo()
+	
 	
 
 	def __init__(self):
@@ -37,3 +53,6 @@ class ExerciseInfo:
 
 	def cycleDateTime():
 		return self.runDate + ' ' + self.runTime
+
+	def elevationChange(self):
+		return '{0:.{1}f}'.format(self.elevationGain*METERS_TO_FEET,1) + '↑\n' + '{0:.{1}f}'.format(self.elevationLoss*METERS_TO_FEET,1) + '↓'

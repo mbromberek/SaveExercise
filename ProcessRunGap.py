@@ -1,5 +1,11 @@
 #! /Users/mikeyb/Applications/python3
 
+'''
+Had to run the install certificates in the install directory for Pything to get the HTTPS connections to work
+cd /Applications/Python\ 3.6/
+TurnA:/Applications/Python 3.6 mikeyb$ ./Install\ Certificates.command 
+'''
+
 import zipfile
 import json
 import os,glob
@@ -7,9 +13,14 @@ import re
 import datetime
 import math
 from ExerciseInfo_Class import ExerciseInfo
+from Weather_Class import WeatherInfo
 import applescript
 import configparser
 
+#For API call
+import requests
+
+config = configparser.ConfigParser()
 
 def breakTimeFromSeconds(totTimeSec):
 	hourTot = math.floor(totTimeSec/60/60)
@@ -25,12 +36,63 @@ def formatSheetsTime(h, m, s):
 
 
 #######################################################
+# determineGear(exercise details)
+#######################################################
+def determineGear(ex):
+	gearConfigs = config['gear']
+	gear = ''
+	try:
+		if ex.type == 'Running':
+			primaryDays = config['running']['primary_days'].split(',')
+			if ex.startTime.strftime('%A') in primaryDays:
+				gear = appleScriptName = gearConfigs['default_shoe_primary']
+			else:
+				gear = appleScriptName = gearConfigs['default_shoe_secondary']
+		else:
+			gear = gearConfigs['default_' + ex.type]
+	except:
+		gear = ''
+	
+	return gear
+
+#######################################################
+# API call
+#######################################################
+def apiCall(url):
+	r = requests.get(url)
+	data = r.json()
+	return data
+
+
+#######################################################
+# Get Weather from dark sky for the passed latitude,
+# longitude, and time. 
+# Creates a weather object with returned data and returns
+# it. 
+#######################################################
+def getWeather(lat, lon, tm):
+	darkSkyBaseURL = config['dark_sky']['base_url']
+	darkSkyKey = config['dark_sky']['key']
+	
+	darkSkyUrl = darkSkyBaseURL + darkSkyKey + '/' + str(lat) + ',' + str(lon) + ',' + tm.strftime('%Y-%m-%dT%H:%M:%S')
+	
+	w = WeatherInfo()
+				
+	weatherData = apiCall(darkSkyUrl)
+	w.temp = weatherData['currently']['temperature']
+	w.apparentTemp = weatherData['currently']['apparentTemperature']
+	w.humidity = weatherData['currently']['humidity']
+	
+	return w
+
+
+#######################################################
 # MAIN
 #######################################################
 def main():
 	# Get config details
 	progDir = os.path.dirname(os.path.abspath(__file__))	
-	config = configparser.ConfigParser()
+# 	config = configparser.ConfigParser()
 	config.read(progDir + "/../configs/newExerciseConfig.txt")
 	
 	pathToAppleScript = config['applescript']['script_path']
@@ -67,11 +129,14 @@ def main():
 	for filename in os.listdir(tempDir):
 		if jsonFileRegex.search(filename):
 			ex = ExerciseInfo()
+			ex.type = 'Running'
 			print('\nProcess ' + filename)
 			with open(tempDir + filename) as data_file:
 				data = json.load(data_file)
 				ex.source = data['source']
 				ex.originLoc = filename
+				
+				ex.type = data['activityType']['sourceName']
 			
 				# Get the start time from file in UTC
 				d = datetime.datetime.strptime(data['startTime']['time'],'%Y-%m-%dT%H:%M:%SZ')
@@ -89,21 +154,64 @@ def main():
 				durTotNumbers = formatNumbersTime(ex.hourTot, ex.minTot, ex.secTot)
 				durTotSheets = formatSheetsTime(ex.hourTot, ex.minTot, ex.secTot)
 			
-	# 			print("Duration: " + durTotNumbers)
-	# 			print("Duration: " + durTotSheets)
 				ex.durTot = durTotSheets	
 			
 				ex.avgHeartRate = data['avgHeartrate']
 	
 				ex.calTot = data['calories']
+				ex.elevationGain = data['elevationGain']
+				ex.elevationLoss = data['elevationLoss']
+				
+				if ex.gear == '':
+					ex.gear = determineGear(ex)
+				
+				categoryConfigs = ''
+				if ex.type == 'Running':
+					categoryConfigs = config['run_category']
+					# Get day of the exercise
+					if ex.startTime.strftime('%A') in categoryConfigs:
+						ex.category = categoryConfigs[ex.startTime.strftime('%A')]
+				else:
+					ex.category = 'Easy'
+				
+				# Pull data for getting weather
+				laps = data['laps']
+
+				lastLapStart = datetime.datetime.strptime(laps[-1]['startTime'] ,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+				lastLapDuration = laps[-1]['duration']
+				lastLapEnd = lastLapStart + datetime.timedelta(seconds=lastLapDuration)
+				ex.endTime = lastLapEnd
+				
+				ex.startLat = laps[0]['startLocation']['lat']
+				ex.startLon = laps[0]['startLocation']['lon']				
+				ex.endLat = laps[-1]['endLocation']['lat']
+				ex.endLon = laps[-1]['endLocation']['lon']
+				
+				ex.startWeather = getWeather(ex.startLat, ex.startLon, ex.startTime)
+				ex.endWeather = getWeather(ex.endLat, ex.endLon, ex.endTime)
+				
+				ex.userNotes = 'Start: {0:.{1}f}'.format(ex.startWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.startWeather.humidity*100,0) + ' percent humidity. '
+				ex.userNotes = ex.userNotes + 'End: {0:.{1}f}'.format(ex.endWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.endWeather.humidity*100,0) + ' percent humidity. \n'
 				
 				if (runGapConfigs['print_data'] == 'Y'):
+# 					print("Start Date Time: " + 
+# 						ex.startTime.strftime('%Y-%m-%d %H:%M:%S %Z'))
 					print("Start Date Time: " + 
-						ex.startTime.strftime('%Y-%m-%d %H:%M:%S %Z'))
+						ex.startTime.strftime('%Y-%m-%dT%H:%M:%S'))
+					print("Start Unix Time: " + str(ex.startTime.timestamp()))
+					print('End Date Time: ' + 
+						ex.endTime.strftime('%Y-%m-%dT%H:%M:%S'))
+					
 					print("Distance: " + str(ex.distTot))
 					print("Duration: " + ex.durTot)
 					print('Avg Heartrate: ' + str(ex.avgHeartRate))
 					print('Calories Burned: ' + str(ex.calTot))
+					print('Category: ' + ex.category)
+
+					print('Start Lat, Lon: ' + str(ex.startLat) + ',' + str(ex.startLon) )
+					print('End Lat, Lon: ' + str(ex.endLat) + ',' + str(ex.endLon) )
+# 					print(darkSkyUrlStart)
+# 					print(darkSkyUrlEnd)
 
 				exLst.append(ex)
 
@@ -112,7 +220,7 @@ def main():
 		startDateTime = ex.startTime.strftime(dateTimeSheetFormat)
 		distance = "%.2f" % ex.distTot
 		duration = formatNumbersTime(ex.hourTot, ex.minTot, ex.secTot)
-		scpt.call('addExercise',ex.eDate, 'Running', duration, distance, ex.distUnit, ex.avgHeartRate, ex.calTot, ex.userNotes, startDateTime, ex.gear)
+		scpt.call('addExercise',ex.eDate, ex.type, duration, distance, ex.distUnit, ex.avgHeartRate, ex.calTot, ex.userNotes, startDateTime, ex.gear, ex.category, ex.elevationChange())
 
 		# Remove files from temp folder then monitor folder
 		fileNameChunks = ex.originLoc.split('.')

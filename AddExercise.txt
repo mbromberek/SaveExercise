@@ -4,12 +4,15 @@ property DATE_COL : 1
 property TYPE_COL : 2
 property DUR_COL : 3
 property DIST_COL : 4
-property HR_COL : 6
-property CAL_COL : 7
-property NOTES_COL : 8
-property GEAR_COL : 9
+property PACE_COL : 5
+property NOTES_COL : 6
+property CATEGORY_COL : 7
+property GEAR_COL : 8
+property ELEVATION_COL : 9
+property HR_COL : 10
+property CAL_COL : 11
 
-on addExercise(eDate, eType, eTime, eDistance, eDistanceUnit, eHeartRate, eCal, eNotes, eStartTime, eGear)
+on addExercise(eDate, eType, eTime, eDistance, eDistanceUnit, eHeartRate, eCal, eNotes, eStartTime, eGear, eCategory, eElevation)
 	set exerciseDateOrder to "desc"
 	tell application "Numbers"
 		activate
@@ -51,6 +54,8 @@ on addExercise(eDate, eType, eTime, eDistance, eDistanceUnit, eHeartRate, eCal, 
 						set value of cell CAL_COL to eCal
 						set value of cell NOTES_COL to eNotes
 						set value of cell GEAR_COL to eGear
+						set value of cell CATEGORY_COL to eCategory
+						set value of cell ELEVATION_COL TO eElevation
 					end tell
 				end tell
 			end tell
@@ -171,12 +176,14 @@ on getExercises(numRowsToReturn)
 						set typeVal to my chkMissingVal(value of cell TYPE_COL of row i)
 						set durVal to my chkMissingVal(value of cell DUR_COL of row i)
 						set distVal to my chkMissingVal(value of cell DIST_COL of row i)
+						set paceVal to my chkMissingVal(value of cell PACE_COL of row i)
 						set hrVal to my chkMissingVal(value of cell HR_COL of row i)
 						set calVal to my chkMissingVal(value of cell CAL_COL of row i)
 						set noteVal to my chkMissingVal(value of cell NOTES_COL of row i)
 						set gearVal to my chkMissingVal(value of cell GEAR_COL of row i)
+						set catVal to my chkMissingVal(value of cell CATEGORY_COL of row i)
 						
-						set exerciseVal to {rowVal:i, dateVal:dateVal, typeVal:typeVal, durationVal:durVal, distanseVal:distVal, hrVal:hrVal, caloriesVal:calVal, noteVal:noteVal, gearVal:gearVal}
+						set exerciseVal to {rowVal:i, dateVal:dateVal, typeVal:typeVal, durationVal:durVal, distanseVal:distVal, hrVal:hrVal, caloriesVal:calVal, noteVal:noteVal, gearVal:gearVal, catVal:catVal, paceVal:paceVal}
 						log (exerciseVal)
 						set exerciseLst to exerciseLst & {exerciseVal}
 						(*if (dateVal = missing value) then
