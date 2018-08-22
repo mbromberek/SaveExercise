@@ -159,8 +159,10 @@ def main():
 				ex.avgHeartRate = data['avgHeartrate']
 	
 				ex.calTot = data['calories']
-				ex.elevationGain = data['elevationGain']
-				ex.elevationLoss = data['elevationLoss']
+				
+				if 'elevationGain' in data:
+					ex.elevationGain = data['elevationGain']
+					ex.elevationLoss = data['elevationLoss']
 				
 				if ex.gear == '':
 					ex.gear = determineGear(ex)
@@ -176,22 +178,31 @@ def main():
 				
 				# Pull data for getting weather
 				laps = data['laps']
+				if 'displayPath' in data:
+					exPath = data['displayPath']
 
-				lastLapStart = datetime.datetime.strptime(laps[-1]['startTime'] ,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
-				lastLapDuration = laps[-1]['duration']
-				lastLapEnd = lastLapStart + datetime.timedelta(seconds=lastLapDuration)
-				ex.endTime = lastLapEnd
+					lastLapStart = datetime.datetime.strptime(laps[-1]['startTime'] ,'%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=datetime.timezone.utc).astimezone(tz=None)
+					lastLapDuration = laps[-1]['duration']
+					lastLapEnd = lastLapStart + datetime.timedelta(seconds=lastLapDuration)
+					ex.endTime = lastLapEnd
+
+					# Get lat and long from path details				
+					ex.startLat = exPath[0]['lat']
+					ex.startLon = exPath[0]['lon']				
+					ex.endLat = exPath[-1]['lat']
+					ex.endLon = exPath[-1]['lon']
 				
-				ex.startLat = laps[0]['startLocation']['lat']
-				ex.startLon = laps[0]['startLocation']['lon']				
-				ex.endLat = laps[-1]['endLocation']['lat']
-				ex.endLon = laps[-1]['endLocation']['lon']
+					# Get lat and long from start and end of first and last miles, does not work if using Segments in run
+	# 				ex.startLat = laps[0]['startLocation']['lat']
+	# 				ex.startLon = laps[0]['startLocation']['lon']				
+	# 				ex.endLat = laps[-1]['endLocation']['lat']
+	# 				ex.endLon = laps[-1]['endLocation']['lon']
 				
-				ex.startWeather = getWeather(ex.startLat, ex.startLon, ex.startTime)
-				ex.endWeather = getWeather(ex.endLat, ex.endLon, ex.endTime)
+					ex.startWeather = getWeather(ex.startLat, ex.startLon, ex.startTime)
+					ex.endWeather = getWeather(ex.endLat, ex.endLon, ex.endTime)
 				
-				ex.userNotes = 'Start: {0:.{1}f}'.format(ex.startWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.startWeather.humidity*100,0) + ' percent humidity. '
-				ex.userNotes = ex.userNotes + 'End: {0:.{1}f}'.format(ex.endWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.endWeather.humidity*100,0) + ' percent humidity. \n'
+					ex.userNotes = 'Start: {0:.{1}f}'.format(ex.startWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.startWeather.humidity*100,0) + ' percent humidity. '
+					ex.userNotes = ex.userNotes + 'End: {0:.{1}f}'.format(ex.endWeather.temp,0) + ' degrees ' + '{0:.{1}f}'.format(ex.endWeather.humidity*100,0) + ' percent humidity. \n'
 				
 				if (runGapConfigs['print_data'] == 'Y'):
 # 					print("Start Date Time: " + 
@@ -199,8 +210,11 @@ def main():
 					print("Start Date Time: " + 
 						ex.startTime.strftime('%Y-%m-%dT%H:%M:%S'))
 					print("Start Unix Time: " + str(ex.startTime.timestamp()))
-					print('End Date Time: ' + 
-						ex.endTime.strftime('%Y-%m-%dT%H:%M:%S'))
+					if ex.endTime == '':
+						print("End Date Time: Unknown")
+					else:
+						print('End Date Time: ' + 
+							ex.endTime.strftime('%Y-%m-%dT%H:%M:%S'))
 					
 					print("Distance: " + str(ex.distTot))
 					print("Duration: " + ex.durTot)
